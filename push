@@ -1,0 +1,17 @@
+#!/bin/sh
+
+#
+# push "commit message"
+#
+
+# get current branch
+branch=$(git branch | grep "*" | awk '{print $2}')
+
+[ -z "$1" ] && \
+    msg="update" || \
+    msg="$1"
+
+git add .
+git commit -m "${msg}"
+
+git push origin $branch
