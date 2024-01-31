@@ -10,20 +10,7 @@ if [ ! -d .git ]; then
 fi
 
 repo_name="$(basename `git rev-parse --show-toplevel`)"
-remote_count="$(git remote | wc -l)"
 branch=$(git branch | grep "*" | awk '{print $2}')
-
-TYPE=$(gum choose "fix" "feature" "docs" "style" "test")
-SCOPE=$(gum input --placeholder "scope")
-
-# Since the scope is optional, wrap it in parentheses if it has a value.
-test -n "$SCOPE" && SCOPE="($SCOPE)"
-
-# Pre-populate the input with the type(scope): so that the user may change it
-SUMMARY=$(gum input --value "$TYPE$SCOPE: " --placeholder "Summary of this change")
-
-# Commit these changes
-gum confirm "Commit changes?" && git commit -m "$SUMMARY"
 
 for remote in $(git remote)
 do
