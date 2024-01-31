@@ -13,8 +13,6 @@ repo_name="$(basename `git rev-parse --show-toplevel`)"
 remote_count="$(git remote | wc -l)"
 branch=$(git branch | grep "*" | awk '{print $2}')
 
-git add .
-
 TYPE=$(gum choose "fix" "feature" "docs" "style" "test")
 SCOPE=$(gum input --placeholder "scope")
 
