@@ -2,6 +2,10 @@
 
 # choose a font and open terminal using the font
 
-font="$(fc-list : family | rofi -dmenu -i )"
+chosen="$(fc-list : family | rofi -dmenu -i -matching normal )"
 
-st -f "${font} 18" &
+font="$(echo $chosen | sed 's/[,].*$//')"
+
+echo $font
+
+st -f "${font}" &

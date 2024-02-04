@@ -4,4 +4,11 @@
 
 wp=$(ls ~/wp | shuf -n 1)
 
-swaybg -i ~/wp/$wp --mode fill
+case $1 in
+    x)
+        hsetroot -fill ~/wp/$wp
+        ;;
+    *)
+        swaybg -i ~/wp/$wp --mode fill
+        ;;
+esac
