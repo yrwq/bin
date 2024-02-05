@@ -1,14 +1,16 @@
 #!/bin/sh
 
-# use a random wallpaper
+#
+# wp - use a random wallpaper from a directory
+# requirements:
+#   hsetroot for x
+#   swaybg for wayland
 
 wp=$(ls ~/wp | shuf -n 1)
 
-case $1 in
-    x)
-        hsetroot -fill ~/wp/$wp
-        ;;
-    *)
-        swaybg -i ~/wp/$wp --mode fill
-        ;;
-esac
+# just pass any argument for x
+if [ $# -ne 0 ]; then
+    hsetroot -fill ~/wp/$wp
+else
+    swaybg -i ~/wp/$wp --mode fill
+fi
