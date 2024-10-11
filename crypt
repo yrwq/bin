@@ -1,10 +1,5 @@
 #!/bin/sh
-#
-# http://github.com/mitchweaver
-#
 # encrypt and decrypt files with openssl
-#
-#------------------------------------------------
 
 die() {
     >&2 printf '%s\n' "$*"

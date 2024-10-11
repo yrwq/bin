@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-# infinite loop youtube downloader
-
-music_dir="$HOME/torrent/music"
+music_dir="$HOME/etc/music"
 
 while :
 do
@@ -10,4 +8,5 @@ do
     read -rp "url: " url
     cd $music_dir
     yt-dlp $url --add-metadata --embed-thumbnail --extract-audio --audio-format mp3 --restrict-filenames
+
 done
