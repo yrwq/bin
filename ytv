@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 
-# infinite loop youtube downloader but for videos
+# downlaod videos from yt with my preferred settings
+# deps: yt-dlp, ffmpeg
 
-music_dir="$HOME/etc/vid"
-
-while :
-do
-    read -rp "url: " url
-    cd $music_dir
-    yt-dlp -f 'bestvideo[height<=720]+bestaudio/best[height<=720]' \
-        --write-auto-sub --sub-lang=en --embed-subs \
-        --merge-output-format mp4 $url
-done
+read -rp "url: " url
+yt-dlp -f 'bestvideo[height<=720]+bestaudio/best[height<=720]' \
+  --write-auto-sub --sub-lang=en --embed-subs \
+  --merge-output-format mp4 $url

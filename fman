@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Requirements: man, fzf, bat
+# Recommended: col
+
+BAT_PREVIEW_OPTS=(--language=man --style=plain --paging=never)
+BAT_PAGER_OPTS=(--language=man --style=plain --paging=always)
+
+list_cmd() {
+  man -k . 2>/dev/null |
+    awk -F' - ' '
+      function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+
+      {
+        left = $1
+        desc = $2
+
+        # split comma-separated names into separate rows
+        n = split(left, a, ",")
+        for (i = 1; i <= n; i++) {
+          item = trim(a[i])
+
+          name = item
+          sec  = ""
+
+          # extract trailing "(section)" if present
+          if (item ~ /\([^)]+\)$/) {
+            sec = item
+            sub(/^.*\(/, "", sec)
+            sub(/\)$/, "", sec)
+            sub(/[[:space:]]*\([^)]+\)$/, "", name)
+            name = trim(name)
+          }
+
+          if (name != "") {
+            printf "%s\t%s\t%s\n", name, sec, desc
+          }
+        }
+      }
+    '
+}
+
+selected="$(
+  list_cmd |
+    fzf --prompt='man> ' \
+        --delimiter=$'\t' \
+        --with-nth=1,3 \
+        --preview-window='right:70%:wrap' \
+        --preview 'bash -lc '"'"'
+          name="$1"
+          sec="$2"
+
+          if [ -n "$sec" ]; then
+            man -P cat "$sec" "$name"
+          else
+            man -P cat "$name"
+          fi 2>/dev/null |
+          col -bx 2>/dev/null |
+          bat --color=always --language=help --style=plain --paging=never
+        '"'"' _ {1} {2}'
+)"
+
+[ -z "$selected" ] && exit 0
+
+name="$(printf "%s" "$selected" | cut -f1)"
+sec="$(printf "%s" "$selected" | cut -f2)"
+
+if [ -n "$sec" ]; then
+  man -P cat "$sec" "$name"
+else
+  man -P cat "$name"
+fi 2>/dev/null |
+col -bx 2>/dev/null |
+bat "${BAT_PAGER_OPTS[@]}"
