@@ -1,0 +1,79 @@
+#! /bin/sh -e
+
+mtype="$(file -Lb --mime-type -- "$@")"
+
+ifexec() { [ -x "$@" ] && "$(readlink -f "$@")" || "${EDITOR:="$(command -v nvim)"}" "$@"; }
+
+main() {
+    case "$mtype" in
+        */directory)
+            setsid -f "${TERMINAL:="$(command -v foot)"}" -e "${FM:="$(command -v yazi)"}" "$@" >"/dev/null" 2>&1
+            ;;
+        video/*)
+            if [ ! -z "$2" ]
+            then
+                setsid -f "${VIDEO:="$(command -v mpv)"}" \
+                       --no-resume-playback \
+                       --sub-file="$2" \
+                       -- "$@"
+            else
+                setsid -f "${VIDEO:="$(command -v mpv)"}" \
+                       --no-resume-playback \
+                       -- "$@"
+            fi >"/dev/null" 2>&1
+            ;;
+        image/*)
+            setsid -f "${IMAGE:="$(command -v swayimg)"}" -a "$@" >"/dev/null" 2>&1
+            ;;
+        audio/*|application/octet-stream)
+            setsid -f "${TERMINAL:="$(command -v foot)"}" \
+                   -e "${VIDEO:="$(command -v mpv)"}" \
+                   --x11-name="no-title" \
+                   --no-audio-display \
+                   --no-video \
+                   --gapless-audio \
+                   -- "$@"
+            ;;
+        *pdf)
+            setsid -f "${READER:="$(command -v zathura)"}" "$@" >"/dev/null" 2>&1
+            ;;
+        *directory)
+            [ ! -d "$@" ] && exit 1
+            [ ! -f "$@" ] && exit 1
+            "${FM:="$(command -v yazi)"}" "$@"
+            ;;
+        *java*)
+            setsid -f java -jar "$@" >"/dev/null" 2>&1
+            ;;
+        application/zip)
+            case "$@" in
+                *zip)
+                    unzip "$@" >"/dev/null" 2>&1
+                    ;;
+                *jar)
+                    setsid -f java -jar "$@" >"/dev/null" 2>&1
+                    ;;
+            esac
+            ;;
+        text/html)
+            setsid -f "${BROWSER:="$(command -v firefox)"}" "$@" >"/dev/null" 2>&1
+            ;;
+        text/troff)
+            setsid -f "${TERMINAL:="$(command -v foot)"}" -e man "$(pwd)/$@" >"/dev/null" 2>&1
+            ;;
+        *text*|*)
+            case "$@" in
+                *www*|*http*|*https*)
+                    setsid -f firefox "$@" >"/dev/null" 2>&1
+                    ;;
+                *)
+                    ifexec "$@"
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+main "$@"
+
+# vim:ft=sh
