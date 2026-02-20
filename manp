@@ -1,0 +1,10 @@
+#!/bin/sh
+
+#
+# manp - man page chooser
+#
+
+man="$(man -k . | cut -d " " -f1 | fzf)"
+
+[ -z "$man" ] && exit 1
+man "$man"

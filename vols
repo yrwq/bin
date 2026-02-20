@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+
+# chose audio output
+
+import re
+import subprocess
+import sys
+
+def run_wpctl_status():
+    try:
+        return subprocess.check_output("wpctl status", shell=True, encoding="utf-8")
+    except subprocess.CalledProcessError as exc:
+        print("wpctl status failed; is PipeWire running?", file=sys.stderr)
+        raise SystemExit(exc.returncode or 1)
+
+def extract_section(lines, header):
+    start = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith(header + ":"):
+            start = index + 1
+            break
+    if start is None:
+        return []
+    section = []
+    for line in lines[start:]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.endswith(":") and stripped[0].isalpha():
+            break
+        section.append(stripped)
+    return section
+
+
+ENTRY_RE = re.compile(r"^\s*\*?\s*(\d+)[\.:]\s*([^\[]+)(?:\s*\[([^\]]+)\])?")
+
+
+def parse_entries(lines, node_type):
+    entries = []
+    for line in lines:
+        match = ENTRY_RE.match(line)
+        if not match:
+            continue
+        node_id = int(match.group(1))
+        name = match.group(2).strip()
+        is_default = line.lstrip().startswith("*")
+        media_class = (match.group(3) or "").strip()
+        if node_type == "filter" and "Audio/Sink" not in media_class:
+            continue
+        settable = node_type == "sink" or "Audio/Sink" in media_class
+        entries.append(
+            {
+                "id": node_id,
+                "type": node_type,
+                "name": name,
+                "is_default": is_default,
+                "settable": settable,
+            }
+        )
+    return entries
+
+
+def main():
+    raw = run_wpctl_status()
+    clean_lines = raw.replace("├", "").replace("─", "").replace("│", "").replace("└", "").splitlines()
+
+    sinks = extract_section(clean_lines, "Sinks")
+    filters = extract_section(clean_lines, "Filters")
+    nodes = parse_entries(sinks, "sink") + parse_entries(filters, "filter")
+
+    if not nodes:
+        print("No sinks or filter outputs found in wpctl status.", file=sys.stderr)
+        raise SystemExit(1)
+
+    RENAMES = {
+        "built-in audio headphones": "Headphones",
+        "built-in audio speaker": "Speaker",
+        "audio_effect": "Speaker",
+        "effect_output": "Speaker",
+    }
+
+    def display_name(node):
+        lower = node["name"].lower()
+        for key, value in RENAMES.items():
+            if key in lower:
+                return value
+        return node["name"]
+
+    choices = []
+    for node in nodes:
+        default_tag = " [default]" if node["is_default"] else ""
+        choices.append(
+            f"{node['id']:>3d} {node['type']} {display_name(node)}{default_tag}"
+        )
+
+    fzf = subprocess.run(
+        ["fzf", "--ansi", "--prompt", "Audio output > "],
+        input="\n".join(choices).encode("utf-8"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    # fuzzel = subprocess.run(
+    #     ["fuzzel", "-d"],
+    #     input="\n".join(choices).encode("utf-8"),
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.PIPE,
+    # )
+
+    if fzf.returncode != 0:
+        raise SystemExit(fzf.returncode or 1)
+
+    selection = fzf.stdout.strip()
+    if not selection:
+        raise SystemExit(1)
+
+    selected_id = int(selection.split()[0])
+    selected_node = next(node for node in nodes if node["id"] == selected_id)
+    if not selected_node["settable"]:
+        print("Selected node cannot be set as default.", file=sys.stderr)
+        raise SystemExit(1)
+    try:
+        subprocess.run(
+            f"wpctl set-default {selected_node['id']}", shell=True, check=True
+        )
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"wpctl set-default failed for ID {selected_node['id']} (exit {exc.returncode}).",
+            file=sys.stderr,
+        )
+        raise
+    print(f"Set default to {display_name(selected_node)} ({selected_node['type']} {selected_node['id']})")
+
+
+if __name__ == "__main__":
+    main()

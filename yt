@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# downlaod music from yt with my preferred settings
+# deps: yt-dlp, ffmpeg
+
+music_dir="$HOME/etc/music"
+
+read -rp "url: " url
+cd $music_dir
+
+# yt-dlp $url --add-metadata --embed-thumbnail --extract-audio --audio-format mp3 --restrict-filenames
+
+yt-dlp $url \
+    -f bestaudio \
+    -x \
+    --audio-format opus \
+    --audio-quality 0 \
+    --embed-metadata \
+    --embed-thumbnail
